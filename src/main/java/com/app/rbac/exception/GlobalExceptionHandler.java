@@ -1,6 +1,8 @@
 package com.app.rbac.exception;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -55,6 +57,12 @@ public class GlobalExceptionHandler {
 	        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
 	    }
 
+
+	    @ExceptionHandler(BadCredentialsException.class)
+	    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+	        return build(HttpStatus.UNAUTHORIZED, "Invalid username or password", request, null);
+	    }
+	 
 	private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request, List<String> details){
 		ErrorResponse body = ErrorResponse.builder()
 			    .timestamp(LocalDateTime.now())
