@@ -24,9 +24,11 @@ class AuthorizationFlowIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private static final String ADMIN = "admin";
+    private static final String ADMIN = "admin1";
     private static final String ADMIN_PASSWORD = "admin123";
-    private static final String SEEDED_USER = "shubham"; // has USER role -> SECURE_DATA_READ out of the box
+
+    private static final String SEEDED_USER = "shubham";
+    private static final String SEEDED_USER_PASSWORD = "shubham123"; // has USER role -> SECURE_DATA_READ out of the box
 
     @Test
     void unauthenticatedRequest_toSecureData_isRejected() throws Exception {
@@ -36,7 +38,7 @@ class AuthorizationFlowIntegrationTest {
 
     @Test
     void seededUser_withSecureDataReadPermission_canAccessSecureData() throws Exception {
-        mockMvc.perform(get("/secure-data").with(httpBasic(SEEDED_USER, "user123")))
+        mockMvc.perform(get("/secure-data").with(httpBasic(SEEDED_USER, SEEDED_USER_PASSWORD)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestedBy").value(SEEDED_USER))
                 .andExpect(jsonPath("$.message").value(containsString("Access granted")));
@@ -80,7 +82,7 @@ class AuthorizationFlowIntegrationTest {
         // Non-admin cannot assign roles - USER_ROLE_ASSIGN is not in john's permission set.
         Long anotherUserId = registerUser("bystander", "password1");
         mockMvc.perform(post("/users/" + anotherUserId + "/roles/" + roleId)
-                        .with(httpBasic(SEEDED_USER, "user123")))
+                        .with(httpBasic(SEEDED_USER, SEEDED_USER_PASSWORD)))
                 .andExpect(status().isForbidden());
     }
 
