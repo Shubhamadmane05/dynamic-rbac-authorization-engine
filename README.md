@@ -5,7 +5,7 @@ Spring Boot backend where roles and permissions are stored in the database and e
 anywhere — every authorization decision comes from a live DB query.
 
 ## Tech Stack
-Java 17 · Spring Boot · Spring Security · Spring Data JPA · H2 · Lombok · JUnit 5 · JaCoCo · SonarQube
+Java 17 · Spring Boot · Spring Security · Spring Data JPA · H2 · Lombok 
 
 ---
 
@@ -27,7 +27,8 @@ App runs on `http://localhost:8080`. H2 console: `http://localhost:8080/h2-conso
 **Run tests:**
 ```bash
 ./mvnw clean test jacoco:report      # HTML report: target/site/jacoco/index.html
-./mvnw clean verify                  # fails build if coverage < 80%
+./mvnw clean verify                  
+coverage < 80%
 ```
 
 **SonarQube:**
@@ -67,6 +68,51 @@ duplicate, access-denied) are handled centrally in `GlobalExceptionHandler` with
 JSON responses.
 
 ---
+
+### How PermissionEvaluator Is Used
+
+`PermissionEvaluator` is a Spring Security interface with two methods:
+
+```java
+boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission);
+boolean hasPermission(Authentication authentication, Serializable targetId, String targetType, Object permission);
+```
+
+`CustomPermissionEvaluator` implements both — the two-argument version does the actual
+work (matches how every `@PreAuthorize` in this project calls `hasPermission(...)`), and
+the four-argument version simply delegates to it. It's registered with Spring Security's
+method-security infrastructure in `MethodSecurityConfig`:
+
+```java
+@Bean
+static MethodSecurityExpressionHandler methodSecurityExpressionHandler(CustomPermissionEvaluator permissionEvaluator) {
+    DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+    handler.setPermissionEvaluator(permissionEvaluator);
+    return handler;
+}
+```
+
+Once registered, `hasPermission(...)` becomes available inside every `@PreAuthorize`
+expression in the app.
+
+### Example Permission Checks
+
+```java
+// RoleController — create a role
+@PostMapping
+@PreAuthorize("hasPermission('ROLE', 'CREATE')")
+public ResponseEntity<RoleResponse> createRole(@Valid @RequestBody RoleRequest request) { ... }
+
+// RoleController — assign a permission to a role
+@PostMapping("/{roleId}/permissions/{permissionId}")
+@PreAuthorize("hasPermission('ROLE_PERMISSION', 'ASSIGN')")
+public ResponseEntity<ApiMessageResponse> assignPermissionToRole(...) { ... }
+
+// SecureDataController — example protected resource
+@GetMapping
+@PreAuthorize("hasPermission('SECURE_DATA', 'READ')")
+public ResponseEntity<Map<String, Object>> getSecureData() { ... }
+```
 
 ## Assumptions & Design Decisions
 - `POST /users/register` added (spec needed users to exist but didn't define creation) — public, grants zero roles by default.
