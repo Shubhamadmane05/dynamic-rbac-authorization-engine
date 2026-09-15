@@ -21,12 +21,12 @@ public class SecurityConfig {
 
 	
 	@Bean
-	public PasswordEncoder passwordEncoder() {
+	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 	
 	  @Bean
-	    public DaoAuthenticationProvider authenticationProvider(
+	    DaoAuthenticationProvider authenticationProvider(
 	            UserDetailsService userDetailsService,
 	            PasswordEncoder passwordEncoder) {
 
@@ -39,16 +39,17 @@ public class SecurityConfig {
 	    }
 	  
 	  @Bean
-	  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
+	 AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
 		  return config.getAuthenticationManager();
 	  }
 	  
 	  @Bean
-	  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+	  SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
 		  http 
 		  		.csrf(csrf -> csrf.disable())
 		  		.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 		  		.authorizeHttpRequests(auth -> auth
+		  				 .requestMatchers("/").permitAll()
 		  				.requestMatchers("/users/register").permitAll()
 		  				.requestMatchers("/h2-console/**").permitAll()
 		  				.anyRequest().authenticated()
